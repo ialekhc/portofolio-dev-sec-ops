@@ -1,0 +1,94 @@
+name: DevQAOps CI/CD Pipeline
+
+on:
+  # Run pipeline for direct changes to main.
+  push:
+    branches: ["main"]
+
+  # Also run quality checks for PRs targeting main.
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  quality-and-build:
+    name: Sonar Scan and Docker Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Full history helps SonarCloud show better PR/branch insights.
+          fetch-depth: 0
+
+      - name: SonarCloud static code analysis
+        uses: SonarSource/sonarqube-scan-action@v7
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
+        with:
+          args: >
+            -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
+            -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}
+
+      - name: Build Docker image
+        run: docker build -t portfolio-devqaops:latest .
+
+      - name: Save Docker image as tar file
+        run: docker save portfolio-devqaops:latest -o portfolio-devqaops.tar
+
+      - name: Upload Docker image artifact for deployment job
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: portfolio-image
+          path: portfolio-devqaops.tar
+          retention-days: 1
+
+  deploy:
+    name: Deploy to AWS EC2
+    needs: quality-and-build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: portfolio-image
+
+      - name: Copy Docker image to EC2 via SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "portfolio-devqaops.tar"
+          target: "/home/${{ secrets.EC2_USER }}/"
+
+      - name: Load image and run container on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
+            cd /home/${{ secrets.EC2_USER }}
+
+            docker load -i portfolio-devqaops.tar
+
+            if [ "$(docker ps -aq -f name=portfolio-container)" ]; then
+              docker stop portfolio-container || true
+              docker rm portfolio-container || true
+            fi
+
+            docker run -d \
+              --name portfolio-container \
+              --restart unless-stopped \
+              -p 80:80 \
+              portfolio-devqaops:latest
+
+            # Clean temporary image archive and unused Docker resources.
+            rm -f portfolio-devqaops.tar
+            docker system prune -f
