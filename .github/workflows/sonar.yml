@@ -1,0 +1,56 @@
+name: Sonar Analysis
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  sonar:
+    name: SonarCloud Scan
+    runs-on: ubuntu-latest
+    env:
+      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      SONAR_PROJECT_KEY: ${{ secrets.SONAR_PROJECT_KEY }}
+      SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Validate Sonar secrets
+        run: |
+          [ -n "${{ secrets.SONAR_TOKEN }}" ] || { echo "Missing SONAR_TOKEN secret"; exit 1; }
+          [ -n "${{ secrets.SONAR_PROJECT_KEY }}" ] || { echo "Missing SONAR_PROJECT_KEY secret"; exit 1; }
+
+      - name: Resolve Sonar host
+        run: |
+          if [ -n "$SONAR_HOST_URL" ]; then
+            echo "SONAR_HOST_URL_EFFECTIVE=$SONAR_HOST_URL" >> "$GITHUB_ENV"
+          else
+            echo "SONAR_HOST_URL_EFFECTIVE=https://sonarcloud.io" >> "$GITHUB_ENV"
+          fi
+
+      - name: Sonar scan (SonarCloud mode)
+        if: ${{ env.SONAR_ORGANIZATION != '' }}
+        uses: SonarSource/sonarqube-scan-action@v7
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ env.SONAR_HOST_URL_EFFECTIVE }}
+        with:
+          args: >
+            "-Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}"
+            "-Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}"
+
+      - name: Sonar scan (SonarQube mode)
+        if: ${{ env.SONAR_ORGANIZATION == '' }}
+        uses: SonarSource/sonarqube-scan-action@v7
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ env.SONAR_HOST_URL_EFFECTIVE }}
+        with:
+          args: >
+            "-Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}"

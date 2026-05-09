@@ -22,7 +22,7 @@ The design is intentionally lightweight and beginner-friendly so it can be clear
 - Web Server: Nginx (Alpine)
 - Cloud Infrastructure: AWS EC2 + AWS CloudFormation
 - CI/CD: GitHub Actions
-- Code Quality: SonarCloud (or SonarQube Cloud)
+- Code Quality: SonarCloud or SonarQube
 
 ## 3. Project Structure
 
@@ -30,7 +30,8 @@ The design is intentionally lightweight and beginner-friendly so it can be clear
 portfolio-devqaops/
 ├── .github/
 │   └── workflows/
-│       └── pipeline.yaml
+│       ├── ci.yml
+│       └── sonar.yml
 ├── assets/
 │   └── alekh-chaudhary.jpg
 ├── cloudformation.yaml
@@ -114,24 +115,31 @@ Add these secrets in **GitHub Repository > Settings > Secrets and variables > Ac
 - `EC2_SSH_KEY` (private key content for your EC2 key pair)
 - `SONAR_TOKEN` (SonarCloud token)
 - `SONAR_PROJECT_KEY` (your SonarCloud project key)
-- `SONAR_ORGANIZATION` (your SonarCloud organization key)
+- `SONAR_ORGANIZATION` (your SonarCloud organization key, optional for self-hosted SonarQube)
+- `SONAR_HOST_URL` (optional; set this for self-hosted SonarQube, e.g. `https://sonar.example.com`)
 
 ## 8. CI/CD Workflow Explanation
 
-The workflow file is `.github/workflows/pipeline.yaml`.
+Workflow files:
+- `.github/workflows/ci.yml`
+- `.github/workflows/sonar.yml`
 
 ### Trigger
 - Push to `main`
 - Pull request to `main`
 
-### Job 1: `quality-and-build`
+### `sonar.yml` workflow
 1. Checkout code.
-2. Run SonarCloud static analysis.
-3. Build Docker image `portfolio-devqaops:latest`.
-4. Save image as `portfolio-devqaops.tar`.
-5. Upload tar artifact (for deploy step on push to `main`).
+2. Validate Sonar secrets.
+3. Run static analysis using SonarCloud or SonarQube (depending on secrets).
 
-### Job 2: `deploy` (only on push to `main`)
+### `ci.yml` workflow
+1. Build Docker image `portfolio-devqaops:latest`.
+2. Save image as `portfolio-devqaops.tar`.
+3. Upload image artifact.
+4. Deploy to EC2 on push to `main`.
+
+### Deploy stage in `ci.yml` (only on push to `main`)
 1. Download Docker image artifact.
 2. Copy tar file to EC2 via SCP.
 3. SSH into EC2 and run:
@@ -140,12 +148,14 @@ The workflow file is `.github/workflows/pipeline.yaml`.
    - run updated container on port `80`
    - cleanup temporary files and unused Docker resources
 
-## 9. SonarCloud Setup
+## 9. Sonar Setup (Cloud or Self-hosted)
 
 1. Create a SonarCloud project connected to your GitHub repository.
 2. Copy project key and organization key.
-3. Add `SONAR_TOKEN`, `SONAR_PROJECT_KEY`, and `SONAR_ORGANIZATION` in GitHub Secrets.
-4. Keep `sonar-project.properties` in repository root.
+3. Add `SONAR_TOKEN` and `SONAR_PROJECT_KEY` in GitHub Secrets.
+4. Add `SONAR_ORGANIZATION` if you are using SonarCloud.
+5. Add `SONAR_HOST_URL` only if you are using self-hosted SonarQube.
+6. Keep `sonar-project.properties` in repository root.
 
 Note:
 - Do not hardcode tokens in source files.
@@ -162,9 +172,9 @@ Note:
 
 ### Automated deployment (with CI/CD)
 1. Push code to `main`.
-2. GitHub Actions runs quality checks and image build.
-3. Pipeline transfers artifact to EC2.
-4. Pipeline deploys and restarts container automatically.
+2. `sonar.yml` runs static code analysis.
+3. `ci.yml` builds the Docker image.
+4. `ci.yml` transfers artifact to EC2 and redeploys automatically.
 
 ## 11. Demonstration Checklist (Viva)
 
@@ -193,7 +203,9 @@ Add screenshots before submission:
 ## 13. Troubleshooting
 
 ### Pipeline fails at SonarCloud step
-- Confirm `SONAR_TOKEN`, `SONAR_PROJECT_KEY`, and `SONAR_ORGANIZATION` are correct.
+- Confirm `SONAR_TOKEN` and `SONAR_PROJECT_KEY` are correct.
+- For SonarCloud, confirm `SONAR_ORGANIZATION` is correct.
+- For self-hosted SonarQube, set `SONAR_HOST_URL` correctly.
 - Ensure SonarCloud project exists and is linked to repository.
 
 ### SCP/SSH deployment fails

@@ -1,0 +1,83 @@
+name: CI/CD
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Build Docker image
+        run: docker build -t portfolio-devqaops:latest .
+
+      - name: Save Docker image as tar file
+        run: docker save portfolio-devqaops:latest -o portfolio-devqaops.tar
+
+      - name: Upload Docker image artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: portfolio-image
+          path: portfolio-devqaops.tar
+          retention-days: 1
+
+  deploy:
+    name: Deploy to AWS EC2
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Validate EC2 deployment secrets
+        run: |
+          [ -n "${{ secrets.EC2_HOST }}" ] || { echo "Missing EC2_HOST secret"; exit 1; }
+          [ -n "${{ secrets.EC2_USER }}" ] || { echo "Missing EC2_USER secret"; exit 1; }
+          [ -n "${{ secrets.EC2_SSH_KEY }}" ] || { echo "Missing EC2_SSH_KEY secret"; exit 1; }
+
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: portfolio-image
+
+      - name: Copy Docker image to EC2 via SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "portfolio-devqaops.tar"
+          target: "/home/${{ secrets.EC2_USER }}/"
+
+      - name: Load image and run container on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
+            cd /home/${{ secrets.EC2_USER }}
+
+            sudo docker load -i portfolio-devqaops.tar
+
+            if [ "$(sudo docker ps -aq -f name=portfolio-container)" ]; then
+              sudo docker stop portfolio-container || true
+              sudo docker rm portfolio-container || true
+            fi
+
+            sudo docker run -d \
+              --name portfolio-container \
+              --restart unless-stopped \
+              -p 80:80 \
+              portfolio-devqaops:latest
+
+            rm -f portfolio-devqaops.tar
+            sudo docker system prune -f
