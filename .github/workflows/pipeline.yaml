@@ -21,15 +21,21 @@ jobs:
           # Full history helps SonarCloud show better PR/branch insights.
           fetch-depth: 0
 
+      - name: Validate SonarCloud secrets
+        run: |
+          [ -n "${{ secrets.SONAR_TOKEN }}" ] || { echo "Missing SONAR_TOKEN secret"; exit 1; }
+          [ -n "${{ secrets.SONAR_PROJECT_KEY }}" ] || { echo "Missing SONAR_PROJECT_KEY secret"; exit 1; }
+          [ -n "${{ secrets.SONAR_ORGANIZATION }}" ] || { echo "Missing SONAR_ORGANIZATION secret"; exit 1; }
+
       - name: SonarCloud static code analysis
         uses: SonarSource/sonarqube-scan-action@v7
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: https://sonarcloud.io
+          SONAR_TOKEN: ${{ secrets.sqp_c1b1ab7c693caac8726c7eda3b734e8745546e3e }}
+          SONAR_HOST_URL: https://sonar.islingtoncollege.edu.np
         with:
           args: >
-            -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
-            -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}
+            "-Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}"
+            "-Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}"
 
       - name: Build Docker image
         run: docker build -t portfolio-devqaops:latest .
