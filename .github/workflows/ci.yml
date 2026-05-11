@@ -43,8 +43,16 @@ jobs:
           echo "SONAR_PROJECT_KEY_EFFECTIVE=$PROJECT_KEY" >> "$GITHUB_ENV"
           echo "Using Sonar project key: $PROJECT_KEY"
 
+      - name: Resolve Sonar mode
+        run: |
+          if [ -n "${{ secrets.SONAR_HOST_URL }}" ]; then
+            echo "SONAR_MODE=self_hosted" >> "$GITHUB_ENV"
+          else
+            echo "SONAR_MODE=sonarcloud" >> "$GITHUB_ENV"
+          fi
+
       - name: SonarQube static analysis (self-hosted)
-        if: ${{ secrets.SONAR_HOST_URL != '' }}
+        if: ${{ env.SONAR_MODE == 'self_hosted' }}
         uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -54,7 +62,7 @@ jobs:
             -Dsonar.projectKey=${{ env.SONAR_PROJECT_KEY_EFFECTIVE }}
 
       - name: SonarCloud static analysis
-        if: ${{ secrets.SONAR_HOST_URL == '' && secrets.SONAR_ORGANIZATION != '' }}
+        if: ${{ env.SONAR_MODE == 'sonarcloud' }}
         uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
