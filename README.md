@@ -49,8 +49,10 @@ portfolio-devqaops/
 ├── docs/
 │   └── DEPLOYMENT_AWS_ACADEMY.md
 ├── cloudformation.yaml
+├── default.conf
 ├── Dockerfile
 ├── index.html
+├── nginx.conf
 ├── script.js
 ├── sonar-project.properties
 ├── styles.css
@@ -80,10 +82,12 @@ docker build -t portfolio-devqaops:latest .
 Run:
 
 ```bash
-docker run -d --name portfolio-container -p 8081:80 portfolio-devqaops:latest
+docker run -d --name portfolio-container -p 8081:8080 portfolio-devqaops:latest
 ```
 
 Open `http://localhost:8081`
+
+Note: container listens on internal port `8080` as a non-root user, so use host mapping like `8081:8080`.
 
 Cleanup:
 
@@ -130,7 +134,7 @@ Deployment on EC2:
 
 - `docker load`
 - stop/remove old `portfolio-container`
-- run new container on port `80`
+- run new container on host port `80` mapped to container port `8080`
 - clean temporary tar and unused layers
 
 ### 8.2 `sonar.yml`

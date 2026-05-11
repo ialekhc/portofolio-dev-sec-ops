@@ -21,6 +21,10 @@ Parameters:
     Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
     Description: Latest Amazon Linux 2023 AMI from AWS Systems Manager Parameter Store.
 
+  SubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: Subnet where the EC2 instance will be launched.
+
   SSHLocation:
     Type: String
     Default: 0.0.0.0/0
@@ -55,8 +59,13 @@ Resources:
       ImageId: !Ref LatestAmiId
       InstanceType: !Ref InstanceType
       KeyName: !Ref KeyName
-      SecurityGroupIds:
-        - !Ref PortfolioSecurityGroup
+      NetworkInterfaces:
+        - DeviceIndex: "0"
+          SubnetId: !Ref SubnetId
+          GroupSet:
+            - !Ref PortfolioSecurityGroup
+          AssociatePublicIpAddress: true
+          DeleteOnTermination: true
       Tags:
         - Key: Name
           Value: portfolio-devqaops-ec2

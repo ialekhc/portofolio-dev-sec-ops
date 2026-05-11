@@ -154,7 +154,7 @@ jobs:
             sudo docker run -d \
               --name portfolio-container \
               --restart unless-stopped \
-              -p 80:80 \
+              -p 80:8080 \
               portfolio-devqaops:latest
 
             rm -f portfolio-devqaops.tar

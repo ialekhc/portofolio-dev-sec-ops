@@ -34,6 +34,8 @@ Verify access:
 ```bash
 aws sts get-caller-identity
 aws ec2 describe-availability-zones --region us-east-1 --query "AvailabilityZones[0].ZoneName" --output text
+export SUBNET_ID="$(aws ec2 describe-subnets --region us-east-1 --filters Name=default-for-az,Values=true --query 'Subnets[0].SubnetId' --output text)"
+echo "$SUBNET_ID"
 ```
 
 ## 4. Prepare Key Pair for EC2
@@ -69,6 +71,7 @@ aws cloudformation create-stack \
   --template-body file://cloudformation.yaml \
   --parameters \
     ParameterKey=KeyName,ParameterValue=labsuser \
+    ParameterKey=SubnetId,ParameterValue="$SUBNET_ID" \
     ParameterKey=InstanceType,ParameterValue=t2.micro \
     ParameterKey=SSHLocation,ParameterValue=0.0.0.0/0
 
@@ -114,7 +117,7 @@ cd /home/ec2-user
 sudo docker load -i portfolio-devqaops.tar
 sudo docker stop portfolio-container || true
 sudo docker rm portfolio-container || true
-sudo docker run -d --name portfolio-container --restart unless-stopped -p 80:80 portfolio-devqaops:latest
+sudo docker run -d --name portfolio-container --restart unless-stopped -p 80:8080 portfolio-devqaops:latest
 sudo docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 EOFSSH
 ```
