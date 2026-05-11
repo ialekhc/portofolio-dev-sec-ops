@@ -22,7 +22,7 @@ This project demonstrates a complete **Development + QA + Operations** workflow 
 1. Static website files are served by Nginx inside Docker.
 2. AWS CloudFormation provisions an EC2 instance and security group.
 3. GitHub Actions builds Docker image and deploys to EC2 on push to `main`.
-4. Sonar workflow runs static analysis on push/PR.
+4. SonarQube static analysis runs on push/PR as part of CI/CD.
 
 ## 3. Technology Stack
 
@@ -40,7 +40,9 @@ This project demonstrates a complete **Development + QA + Operations** workflow 
 portfolio-devqaops/
 ├── .github/
 │   └── workflows/
+│       ├── build.yml
 │       ├── ci.yml
+│       ├── pipeline.yaml
 │       └── sonar.yml
 ├── assets/
 │   └── alekh-chaudhary.jpg
@@ -118,10 +120,11 @@ Trigger:
 Flow:
 
 1. Checkout repository
-2. Build Docker image (`portfolio-devqaops:latest`)
-3. Save image to `portfolio-devqaops.tar`
-4. Upload artifact
-5. On push to `main`, deploy to EC2 by SCP + SSH
+2. Run SonarQube/SonarCloud static analysis
+3. Build Docker image (`portfolio-devqaops:latest`)
+4. Save image to `portfolio-devqaops.tar`
+5. Upload artifact
+6. On push to `main`, deploy to EC2 by SCP + SSH
 
 Deployment on EC2:
 
@@ -134,8 +137,8 @@ Deployment on EC2:
 
 Trigger:
 
-- `push` to `main`
-- `pull_request` to `main`
+- `workflow_dispatch` (manual)
+- `workflow_call` (reusable)
 
 Flow:
 
@@ -196,8 +199,9 @@ Leave `SONAR_ORGANIZATION` empty.
 
 1. Push a commit to `main`.
 2. Open GitHub Actions.
-3. Confirm `Sonar Analysis` workflow passes.
-4. Open Sonar dashboard and verify new analysis appears.
+3. Confirm `CI/CD -> Sonar Scan` passes on push/PR.
+4. Optional: run `Sonar Analysis` manually from Actions.
+5. Open Sonar dashboard and verify new analysis appears.
 
 ## 10. GitHub Secrets for Full CI/CD
 
@@ -243,7 +247,11 @@ Automated deployment:
 
 ### Duplicate workflows execute
 
-- Keep only `.github/workflows/ci.yml` and `.github/workflows/sonar.yml`
+- Keep automatic trigger on `.github/workflows/ci.yml`
+- Keep companion mandatory workflow files:
+  - `.github/workflows/build.yml`
+  - `.github/workflows/pipeline.yaml`
+  - `.github/workflows/sonar.yml`
 
 ### Docker container restarts on EC2 with `exec format error`
 
@@ -271,7 +279,7 @@ Automated deployment:
 - [ ] Show Docker local run
 - [ ] Show CloudFormation template and stack
 - [ ] Show EC2 public URL live
-- [ ] Show `ci.yml` and `sonar.yml`
+- [ ] Show `build.yml`, `ci.yml`, `pipeline.yaml`, and `sonar.yml`
 - [ ] Show successful Sonar run
 - [ ] Explain manual vs automated deployment
 

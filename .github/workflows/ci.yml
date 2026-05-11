@@ -7,6 +7,62 @@ on:
     branches: ["main"]
 
 jobs:
+  sonar:
+    name: Sonar Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate Sonar secrets
+        run: |
+          [ -n "${{ secrets.SONAR_TOKEN }}" ] || { echo "Missing SONAR_TOKEN secret"; exit 1; }
+          if [ -z "${{ secrets.SONAR_HOST_URL }}" ] && [ -z "${{ secrets.SONAR_ORGANIZATION }}" ]; then
+            echo "Set SONAR_HOST_URL (self-hosted SonarQube) or SONAR_ORGANIZATION (SonarCloud)."
+            exit 1
+          fi
+
+      - name: Resolve Sonar project key
+        run: |
+          PROJECT_KEY="${{ secrets.SONAR_PROJECT_KEY }}"
+
+          if [ -z "$PROJECT_KEY" ] && [ -f sonar-project.properties ]; then
+            PROJECT_KEY="$(grep -E '^sonar\\.projectKey=' sonar-project.properties | head -n1 | cut -d= -f2-)"
+          fi
+
+          if [ -z "$PROJECT_KEY" ]; then
+            PROJECT_KEY="${GITHUB_REPOSITORY//\//_}"
+          fi
+
+          PROJECT_KEY="$(echo "$PROJECT_KEY" | sed 's/[^A-Za-z0-9._:-]/_/g')"
+          [ -n "$PROJECT_KEY" ] || { echo "Unable to resolve Sonar project key"; exit 1; }
+
+          echo "SONAR_PROJECT_KEY_EFFECTIVE=$PROJECT_KEY" >> "$GITHUB_ENV"
+          echo "Using Sonar project key: $PROJECT_KEY"
+
+      - name: SonarQube static analysis (self-hosted)
+        if: ${{ secrets.SONAR_HOST_URL != '' }}
+        uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        with:
+          args: >
+            -Dsonar.projectKey=${{ env.SONAR_PROJECT_KEY_EFFECTIVE }}
+
+      - name: SonarCloud static analysis
+        if: ${{ secrets.SONAR_HOST_URL == '' && secrets.SONAR_ORGANIZATION != '' }}
+        uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.projectKey=${{ env.SONAR_PROJECT_KEY_EFFECTIVE }}
+            -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}
+
   build:
     name: Build Docker Image
     runs-on: ubuntu-latest
@@ -31,7 +87,7 @@ jobs:
 
   deploy:
     name: Deploy to AWS EC2
-    needs: build
+    needs: [sonar, build]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 

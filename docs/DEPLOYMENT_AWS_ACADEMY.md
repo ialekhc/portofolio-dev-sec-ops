@@ -183,15 +183,17 @@ Then push to `main` to trigger workflows.
 
 ## 12. Sonar Workflow Repair Checklist
 
-To avoid old failing runs, keep only these workflow files:
-
-- `.github/workflows/ci.yml`
-- `.github/workflows/sonar.yml`
-
-Ensure these old files are removed:
+Mandatory workflow files in this repository:
 
 - `.github/workflows/build.yml`
+- `.github/workflows/ci.yml`
 - `.github/workflows/pipeline.yaml`
+- `.github/workflows/sonar.yml`
+
+Trigger behavior:
+
+- `ci.yml` is the primary automatic workflow on push/PR (includes Sonar + build + deploy).
+- `sonar.yml`, `build.yml`, and `pipeline.yaml` are companion/manual workflows for coursework completeness and demonstration.
 
 ### Sonar secrets by mode
 
@@ -211,5 +213,5 @@ Self-hosted SonarQube mode:
 
 1. Push commit to `main`.
 2. Open `Actions` tab in GitHub.
-3. Confirm workflow `Sonar Analysis` is green.
+3. Confirm `CI/CD` workflow job `Sonar Scan` is green.
 4. Open Sonar dashboard and verify analysis time matches the latest commit.

@@ -1,0 +1,17 @@
+name: DevQAOps Pipeline
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  pipeline-info:
+    name: Pipeline Overview
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Show pipeline components
+        run: |
+          echo "Primary automated workflow: .github/workflows/ci.yml"
+          echo "Sonar companion workflow: .github/workflows/sonar.yml"
+          echo "Build companion workflow: .github/workflows/build.yml"
