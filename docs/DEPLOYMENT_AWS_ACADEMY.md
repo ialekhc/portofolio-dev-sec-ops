@@ -175,7 +175,7 @@ After manual success, configure GitHub secrets:
 - `EC2_USER`
 - `EC2_SSH_KEY`
 - `SONAR_TOKEN`
-- `SONAR_PROJECT_KEY`
+- `SONAR_PROJECT_KEY` (recommended)
 - `SONAR_ORGANIZATION` (if SonarCloud)
 - `SONAR_HOST_URL` (if self-hosted SonarQube)
 
@@ -198,14 +198,14 @@ Ensure these old files are removed:
 SonarCloud mode:
 
 - `SONAR_TOKEN`
-- `SONAR_PROJECT_KEY`
 - `SONAR_ORGANIZATION`
+- `SONAR_PROJECT_KEY` (recommended)
 
 Self-hosted SonarQube mode:
 
 - `SONAR_TOKEN`
-- `SONAR_PROJECT_KEY`
 - `SONAR_HOST_URL`
+- `SONAR_PROJECT_KEY` (recommended)
 
 ### Validate Sonar after push
 

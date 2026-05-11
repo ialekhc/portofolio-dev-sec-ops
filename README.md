@@ -159,7 +159,10 @@ This repository now uses a clean Sonar config with:
 Always required:
 
 - `SONAR_TOKEN`
-- `SONAR_PROJECT_KEY`
+
+Recommended:
+
+- `SONAR_PROJECT_KEY` (optional; workflow auto-generates one from repo name if missing)
 
 For SonarCloud:
 
@@ -174,8 +177,8 @@ For self-hosted SonarQube:
 Set these secrets:
 
 - `SONAR_TOKEN`
-- `SONAR_PROJECT_KEY`
 - `SONAR_ORGANIZATION`
+- `SONAR_PROJECT_KEY` (recommended)
 
 `SONAR_HOST_URL` can be left empty; workflow defaults to `https://sonarcloud.io`.
 
@@ -184,8 +187,8 @@ Set these secrets:
 Set these secrets:
 
 - `SONAR_TOKEN`
-- `SONAR_PROJECT_KEY`
 - `SONAR_HOST_URL`
+- `SONAR_PROJECT_KEY` (recommended)
 
 Leave `SONAR_ORGANIZATION` empty.
 
@@ -207,7 +210,7 @@ Deployment:
 Sonar:
 
 - `SONAR_TOKEN`
-- `SONAR_PROJECT_KEY`
+- `SONAR_PROJECT_KEY` (recommended)
 - `SONAR_ORGANIZATION` (SonarCloud only)
 - `SONAR_HOST_URL` (self-hosted only)
 
@@ -231,7 +234,10 @@ Automated deployment:
 
 ### Sonar scan fails immediately
 
-- Check `SONAR_TOKEN` and `SONAR_PROJECT_KEY` secrets
+- Check `SONAR_TOKEN` plus one mode secret:
+  - `SONAR_HOST_URL` (self-hosted SonarQube), or
+  - `SONAR_ORGANIZATION` (SonarCloud)
+- `SONAR_PROJECT_KEY` is recommended but optional in this repo
 - For SonarCloud: ensure `SONAR_ORGANIZATION` is correct
 - For self-hosted: ensure `SONAR_HOST_URL` is correct and reachable
 
