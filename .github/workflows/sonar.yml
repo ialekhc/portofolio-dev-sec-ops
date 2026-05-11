@@ -28,7 +28,7 @@ jobs:
           PROJECT_KEY="${{ secrets.SONAR_PROJECT_KEY }}"
 
           if [ -z "$PROJECT_KEY" ] && [ -f sonar-project.properties ]; then
-            PROJECT_KEY="$(grep -E '^sonar\\.projectKey=' sonar-project.properties | head -n1 | cut -d= -f2-)"
+            PROJECT_KEY="$(grep -E '^sonar\.projectKey=' sonar-project.properties | head -n1 | cut -d= -f2-)"
           fi
 
           if [ -z "$PROJECT_KEY" ] || [ "$PROJECT_KEY" = "your_sonar_project_key" ]; then
@@ -42,9 +42,23 @@ jobs:
           echo "SONAR_PROJECT_KEY_EFFECTIVE=$PROJECT_KEY" >> "$GITHUB_ENV"
           echo "Using Sonar project key: $PROJECT_KEY"
 
+      - name: Resolve Sonar host URL
+        run: |
+          RAW_HOST="${{ secrets.SONAR_HOST_URL }}"
+          CLEAN_HOST="$(printf '%s' "$RAW_HOST" | tr -d '\r' | xargs)"
+          CLEAN_HOST="${CLEAN_HOST#\"}"
+          CLEAN_HOST="${CLEAN_HOST%\"}"
+          CLEAN_HOST="${CLEAN_HOST#\'}"
+          CLEAN_HOST="${CLEAN_HOST%\'}"
+          if [ -n "$CLEAN_HOST" ] && ! echo "$CLEAN_HOST" | grep -Eq '^https?://'; then
+            echo "Invalid SONAR_HOST_URL format. Expected http(s) URL."
+            exit 1
+          fi
+          echo "SONAR_HOST_URL_EFFECTIVE=$CLEAN_HOST" >> "$GITHUB_ENV"
+
       - name: Resolve Sonar mode
         run: |
-          if [ -n "${{ secrets.SONAR_HOST_URL }}" ]; then
+          if [ -n "${{ env.SONAR_HOST_URL_EFFECTIVE }}" ]; then
             echo "SONAR_MODE=self_hosted" >> "$GITHUB_ENV"
           else
             echo "SONAR_MODE=sonarcloud" >> "$GITHUB_ENV"
@@ -55,7 +69,7 @@ jobs:
         uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_HOST_URL: ${{ env.SONAR_HOST_URL_EFFECTIVE }}
         with:
           args: >
             -Dsonar.projectKey=${{ env.SONAR_PROJECT_KEY_EFFECTIVE }}
