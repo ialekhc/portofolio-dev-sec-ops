@@ -8,7 +8,7 @@ on:
 
 jobs:
   sonar:
-    name: SonarCloud Scan
+    name: Sonar Scan
     runs-on: ubuntu-latest
     env:
       SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
@@ -25,6 +25,10 @@ jobs:
         run: |
           [ -n "${{ secrets.SONAR_TOKEN }}" ] || { echo "Missing SONAR_TOKEN secret"; exit 1; }
           [ -n "${{ secrets.SONAR_PROJECT_KEY }}" ] || { echo "Missing SONAR_PROJECT_KEY secret"; exit 1; }
+          if [ -z "${{ secrets.SONAR_ORGANIZATION }}" ] && [ -z "${{ secrets.SONAR_HOST_URL }}" ]; then
+            echo "Set SONAR_ORGANIZATION for SonarCloud OR set SONAR_HOST_URL for self-hosted SonarQube."
+            exit 1
+          fi
 
       - name: Resolve Sonar host
         run: |

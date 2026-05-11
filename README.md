@@ -1,30 +1,40 @@
 # Portfolio DevQAOps Project
 
-A coursework-ready personal portfolio website project that demonstrates Development, Quality Assurance, and Operations practices using Docker, AWS CloudFormation, GitHub Actions CI/CD, and SonarCloud static analysis.
+Coursework repository for **CC7010NI Development, Quality Assurance and Operations**.
+
+This project demonstrates a complete **Development + QA + Operations** workflow for a static personal portfolio website:
+
+- Build frontend with plain HTML/CSS/JavaScript
+- Containerize with Docker and Nginx
+- Provision AWS infrastructure with CloudFormation
+- Deploy container to AWS EC2
+- Automate quality checks and deployment with GitHub Actions
+- Run static analysis with SonarCloud/SonarQube
+
+## 1. Module and Objective
 
 **Module:** CC7010NI Development, Quality Assurance and Operations
 
-## 1. Project Overview
+**Objective:** Deliver a simple but professional portfolio website with a clear, demonstrable DevQAOps lifecycle suitable for academic presentation.
 
-This repository contains:
-- A responsive personal portfolio website built with plain HTML, CSS, and JavaScript.
-- Docker containerization using a custom image based on `nginx:alpine`.
-- Infrastructure provisioning on AWS EC2 using CloudFormation.
-- Automated CI/CD pipeline using GitHub Actions.
-- Static code analysis integration with SonarCloud.
+## 2. Architecture Overview
 
-The design is intentionally lightweight and beginner-friendly so it can be clearly explained during viva.
+1. Static website files are served by Nginx inside Docker.
+2. AWS CloudFormation provisions an EC2 instance and security group.
+3. GitHub Actions builds Docker image and deploys to EC2 on push to `main`.
+4. Sonar workflow runs static analysis on push/PR.
 
-## 2. Technology Stack
+## 3. Technology Stack
 
 - Frontend: HTML5, CSS3, JavaScript (Vanilla)
 - Containerization: Docker
-- Web Server: Nginx (Alpine)
-- Cloud Infrastructure: AWS EC2 + AWS CloudFormation
+- Web server: Nginx (`nginx:alpine`)
+- Infrastructure as Code: AWS CloudFormation
+- Cloud runtime: AWS EC2 (Amazon Linux)
 - CI/CD: GitHub Actions
-- Code Quality: SonarCloud or SonarQube
+- Code quality: SonarCloud / SonarQube
 
-## 3. Project Structure
+## 4. Repository Structure
 
 ```text
 portfolio-devqaops/
@@ -34,201 +44,238 @@ portfolio-devqaops/
 │       └── sonar.yml
 ├── assets/
 │   └── alekh-chaudhary.jpg
+├── docs/
+│   └── DEPLOYMENT_AWS_ACADEMY.md
 ├── cloudformation.yaml
 ├── Dockerfile
 ├── index.html
-├── README.md
 ├── script.js
 ├── sonar-project.properties
-└── styles.css
+├── styles.css
+└── README.md
 ```
 
-## 4. Local Run Instructions
+## 5. Local Execution
 
-### Option A: Open directly
-1. Open `index.html` in a browser.
+Run directly:
 
-### Option B: Run local static server (recommended)
 ```bash
+cd /Users/anex/Developer/portofolio-dev-sec-ops
 python3 -m http.server 8080
 ```
-Then open:
-- `http://localhost:8080`
 
-## 5. Docker Build and Run
+Open `http://localhost:8080`
 
-### Build image
+## 6. Docker Execution (Local)
+
+Build:
+
 ```bash
+cd /Users/anex/Developer/portofolio-dev-sec-ops
 docker build -t portfolio-devqaops:latest .
 ```
 
-### Run container
+Run:
+
 ```bash
-docker run -d --name portfolio-container -p 8080:80 portfolio-devqaops:latest
+docker run -d --name portfolio-container -p 8081:80 portfolio-devqaops:latest
 ```
 
-### Test in browser
-- `http://localhost:8080`
+Open `http://localhost:8081`
 
-### Stop and remove
+Cleanup:
+
 ```bash
 docker stop portfolio-container
 docker rm portfolio-container
 ```
 
-## 6. CloudFormation Deployment (AWS EC2)
+## 7. AWS Deployment Summary
 
-### Prerequisites
-- AWS account
-- AWS CLI configured (`aws configure`)
-- Existing EC2 key pair in your target region
+Detailed step-by-step deployment guide:
+- [docs/DEPLOYMENT_AWS_ACADEMY.md](docs/DEPLOYMENT_AWS_ACADEMY.md)
 
-### Create stack
-```bash
-aws cloudformation create-stack \
-  --stack-name portfolio-devqaops-stack \
-  --template-body file://cloudformation.yaml \
-  --parameters \
-    ParameterKey=KeyName,ParameterValue=<YOUR_KEYPAIR_NAME> \
-    ParameterKey=InstanceType,ParameterValue=t2.micro \
-    ParameterKey=SSHLocation,ParameterValue=0.0.0.0/0
-```
+Documented successful run:
 
-### Check stack status
-```bash
-aws cloudformation describe-stacks --stack-name portfolio-devqaops-stack
-```
+- Date: May 11, 2026
+- Region: `us-east-1`
+- Stack: `portfolio-devqaops-stack`
+- Instance ID: `i-07e2a5d4017656c6f`
+- Public IP: `54.198.41.101`
+- URL: `http://54.198.41.101`
 
-### Get outputs (InstanceId, PublicIP, WebsiteURL)
-```bash
-aws cloudformation describe-stacks \
-  --stack-name portfolio-devqaops-stack \
-  --query "Stacks[0].Outputs"
-```
+Note: Learner Lab resources are temporary and can reset.
 
-## 7. Required GitHub Secrets
+## 8. GitHub Actions Workflows
 
-Add these secrets in **GitHub Repository > Settings > Secrets and variables > Actions**:
+### 8.1 `ci.yml`
 
-- `EC2_HOST` (EC2 public IP or DNS)
-- `EC2_USER` (usually `ec2-user` for Amazon Linux)
-- `EC2_SSH_KEY` (private key content for your EC2 key pair)
-- `SONAR_TOKEN` (SonarCloud token)
-- `SONAR_PROJECT_KEY` (your SonarCloud project key)
-- `SONAR_ORGANIZATION` (your SonarCloud organization key, optional for self-hosted SonarQube)
-- `SONAR_HOST_URL` (optional; set this for self-hosted SonarQube, e.g. `https://sonar.example.com`)
+Trigger:
 
-## 8. CI/CD Workflow Explanation
+- `push` to `main`
+- `pull_request` to `main`
 
-Workflow files:
-- `.github/workflows/ci.yml`
-- `.github/workflows/sonar.yml`
+Flow:
 
-### Trigger
-- Push to `main`
-- Pull request to `main`
+1. Checkout repository
+2. Build Docker image (`portfolio-devqaops:latest`)
+3. Save image to `portfolio-devqaops.tar`
+4. Upload artifact
+5. On push to `main`, deploy to EC2 by SCP + SSH
 
-### `sonar.yml` workflow
-1. Checkout code.
-2. Validate Sonar secrets.
-3. Run static analysis using SonarCloud or SonarQube (depending on secrets).
+Deployment on EC2:
 
-### `ci.yml` workflow
-1. Build Docker image `portfolio-devqaops:latest`.
-2. Save image as `portfolio-devqaops.tar`.
-3. Upload image artifact.
-4. Deploy to EC2 on push to `main`.
+- `docker load`
+- stop/remove old `portfolio-container`
+- run new container on port `80`
+- clean temporary tar and unused layers
 
-### Deploy stage in `ci.yml` (only on push to `main`)
-1. Download Docker image artifact.
-2. Copy tar file to EC2 via SCP.
-3. SSH into EC2 and run:
-   - `docker load`
-   - stop/remove existing `portfolio-container` if present
-   - run updated container on port `80`
-   - cleanup temporary files and unused Docker resources
+### 8.2 `sonar.yml`
 
-## 9. Sonar Setup (Cloud or Self-hosted)
+Trigger:
 
-1. Create a SonarCloud project connected to your GitHub repository.
-2. Copy project key and organization key.
-3. Add `SONAR_TOKEN` and `SONAR_PROJECT_KEY` in GitHub Secrets.
-4. Add `SONAR_ORGANIZATION` if you are using SonarCloud.
-5. Add `SONAR_HOST_URL` only if you are using self-hosted SonarQube.
-6. Keep `sonar-project.properties` in repository root.
+- `push` to `main`
+- `pull_request` to `main`
 
-Note:
-- Do not hardcode tokens in source files.
-- The token is securely read from GitHub Secrets during pipeline execution.
+Flow:
 
-## 10. Manual vs Automated Process
+1. Checkout repository (full history)
+2. Validate required Sonar secrets
+3. Resolve Sonar host
+4. Run one of the scan modes:
+   - SonarCloud mode when `SONAR_ORGANIZATION` is set
+   - Self-hosted SonarQube mode when `SONAR_ORGANIZATION` is empty and `SONAR_HOST_URL` is set
 
-### Manual deployment (without CI/CD)
-1. Build Docker image locally.
-2. Export image tar.
-3. SCP file to EC2.
-4. SSH to EC2.
-5. Load image, stop old container, run new container.
+## 9. Sonar Setup (Fixed and Detailed)
 
-### Automated deployment (with CI/CD)
-1. Push code to `main`.
-2. `sonar.yml` runs static code analysis.
-3. `ci.yml` builds the Docker image.
-4. `ci.yml` transfers artifact to EC2 and redeploys automatically.
+This repository now uses a clean Sonar config with:
 
-## 11. Demonstration Checklist (Viva)
+- Valid `sonar-project.properties`
+- A dedicated Sonar workflow with explicit secret validation
+- Clear fallback logic for SonarCloud vs SonarQube
 
-- [ ] Show portfolio website UI locally.
-- [ ] Show Docker image build command.
-- [ ] Show running container and browser output.
-- [ ] Show `cloudformation.yaml` resources and parameters.
-- [ ] Show CloudFormation stack outputs (PublicIP, WebsiteURL).
-- [ ] Show GitHub Actions workflow file.
-- [ ] Push a small change to `main` and show pipeline execution.
-- [ ] Show SonarCloud analysis dashboard.
-- [ ] Show container redeployment on EC2.
-- [ ] Open EC2 public IP in browser to prove live hosting.
+### 9.1 Required Secrets
 
-## 12. Screenshots (Placeholders)
+Always required:
 
-Add screenshots before submission:
+- `SONAR_TOKEN`
+- `SONAR_PROJECT_KEY`
 
-1. `screenshots/local-website.png` - local browser view
-2. `screenshots/docker-running.png` - `docker ps` output
-3. `screenshots/cloudformation-stack.png` - stack create success
-4. `screenshots/github-actions-success.png` - pipeline success
-5. `screenshots/sonarcloud-report.png` - static analysis report
-6. `screenshots/ec2-live-url.png` - website via EC2 public IP
+For SonarCloud:
 
-## 13. Troubleshooting
+- `SONAR_ORGANIZATION`
 
-### Pipeline fails at SonarCloud step
-- Confirm `SONAR_TOKEN` and `SONAR_PROJECT_KEY` are correct.
-- For SonarCloud, confirm `SONAR_ORGANIZATION` is correct.
-- For self-hosted SonarQube, set `SONAR_HOST_URL` correctly.
-- Ensure SonarCloud project exists and is linked to repository.
+For self-hosted SonarQube:
 
-### SCP/SSH deployment fails
-- Verify `EC2_HOST`, `EC2_USER`, and `EC2_SSH_KEY` secrets.
-- Ensure EC2 security group allows SSH (22) from your runner IP range.
+- `SONAR_HOST_URL` (example: `https://sonar.example.com`)
 
-### Website not opening on EC2 public IP
-- Check security group HTTP rule (port 80 open).
-- Confirm container is running on EC2:
-  ```bash
-  docker ps
-  ```
+### 9.2 SonarCloud Mode
 
-### Port conflict on EC2
-- Another service may already use port 80.
-- Stop conflicting service/container, then redeploy.
+Set these secrets:
 
-## 14. Academic Notes
+- `SONAR_TOKEN`
+- `SONAR_PROJECT_KEY`
+- `SONAR_ORGANIZATION`
 
-This implementation prioritizes DevQAOps learning outcomes:
-- Infrastructure as Code (CloudFormation)
-- Container-based deployment (Docker)
-- Continuous Integration and Continuous Deployment (GitHub Actions)
-- Continuous code quality checks (SonarCloud)
+`SONAR_HOST_URL` can be left empty; workflow defaults to `https://sonarcloud.io`.
 
-It intentionally avoids unnecessary frameworks and backend complexity for clear understanding and demonstration.
+### 9.3 Self-hosted SonarQube Mode
+
+Set these secrets:
+
+- `SONAR_TOKEN`
+- `SONAR_PROJECT_KEY`
+- `SONAR_HOST_URL`
+
+Leave `SONAR_ORGANIZATION` empty.
+
+### 9.4 Verification
+
+1. Push a commit to `main`.
+2. Open GitHub Actions.
+3. Confirm `Sonar Analysis` workflow passes.
+4. Open Sonar dashboard and verify new analysis appears.
+
+## 10. GitHub Secrets for Full CI/CD
+
+Deployment:
+
+- `EC2_HOST`
+- `EC2_USER`
+- `EC2_SSH_KEY`
+
+Sonar:
+
+- `SONAR_TOKEN`
+- `SONAR_PROJECT_KEY`
+- `SONAR_ORGANIZATION` (SonarCloud only)
+- `SONAR_HOST_URL` (self-hosted only)
+
+## 11. Manual vs Automated Process
+
+Manual deployment:
+
+1. Build image locally
+2. Save image as tar
+3. SCP tar to EC2
+4. SSH and run container
+
+Automated deployment:
+
+1. Push to `main`
+2. CI builds and uploads artifact
+3. Deploy job updates EC2 container
+4. Sonar workflow checks code quality
+
+## 12. Troubleshooting
+
+### Sonar scan fails immediately
+
+- Check `SONAR_TOKEN` and `SONAR_PROJECT_KEY` secrets
+- For SonarCloud: ensure `SONAR_ORGANIZATION` is correct
+- For self-hosted: ensure `SONAR_HOST_URL` is correct and reachable
+
+### Duplicate workflows execute
+
+- Keep only `.github/workflows/ci.yml` and `.github/workflows/sonar.yml`
+
+### Docker container restarts on EC2 with `exec format error`
+
+- Build with target platform:
+  - `docker buildx build --platform linux/amd64 -t portfolio-devqaops:latest --load .`
+
+### EC2 deployment succeeds but site not reachable
+
+- Verify security group inbound:
+  - TCP 22 (SSH)
+  - TCP 80 (HTTP)
+- Check EC2 container:
+  - `sudo docker ps`
+
+## 13. Security Notes
+
+- Never commit AWS credentials or PEM files
+- Use GitHub Secrets for tokens/keys
+- Keep PEM permission strict: `chmod 400 <pem>`
+- Rotate credentials immediately if exposed
+
+## 14. Demo Checklist (Viva)
+
+- [ ] Show local web run
+- [ ] Show Docker local run
+- [ ] Show CloudFormation template and stack
+- [ ] Show EC2 public URL live
+- [ ] Show `ci.yml` and `sonar.yml`
+- [ ] Show successful Sonar run
+- [ ] Explain manual vs automated deployment
+
+## 15. Screenshots Placeholder
+
+Add screenshots before final submission:
+
+1. `screenshots/local-website.png`
+2. `screenshots/docker-running.png`
+3. `screenshots/cloudformation-stack.png`
+4. `screenshots/github-actions-ci-success.png`
+5. `screenshots/github-actions-sonar-success.png`
+6. `screenshots/live-ec2-url.png`
