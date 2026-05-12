@@ -131,6 +131,8 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          timeout: 2m
+          command_timeout: 20m
           source: "portfolio-devqaops.tar"
           target: "/home/${{ secrets.EC2_USER }}/"
 
@@ -140,6 +142,8 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          timeout: 2m
+          command_timeout: 20m
           script: |
             set -e
             cd /home/${{ secrets.EC2_USER }}
